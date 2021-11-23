@@ -13,21 +13,20 @@ using System.Collections.Generic;
 namespace Local24API.Controllers
 {
     [RoutePrefix("api/Company")]
-    public class CompanyController : ApiController
+    public class PartnerController : ApiController
     {
         private string LOCAL24ConnString = System.Configuration.ConfigurationManager.ConnectionStrings["24LOCAL_Booking_Connection"].ConnectionString;
            
-        public CompanyController()
+        public PartnerController()
         {
            
         }
 
-        //[Authorize]
-        [AllowAnonymous]
+        [Authorize]
         [HttpGet]
-        [SwaggerOperation("Companies")]
-        [Route("Companies")]
-        public async Task<CompanyModel> Companies(int companyID)
+        [SwaggerOperation("Partners")]
+        [Route("Partners")]
+        public async Task<CompanyModel> Partners(int companyID)
         {
             var principal = ClaimsPrincipal.Current;
             var idClaim = principal.Claims.FirstOrDefault(c => c.Type == "sub");

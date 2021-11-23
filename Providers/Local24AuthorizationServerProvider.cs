@@ -36,6 +36,8 @@ namespace Local24API.Providers
 
                     identity.AddClaim(new Claim("sub", context.UserName));
                     identity.AddClaim(new Claim("role", "user"));
+                    identity.AddClaim(new Claim("companyID", user.cityID.ToString()));
+                    identity.AddClaim(new Claim("companyName", user.companyName.ToString()));
 
                     context.Validated(identity);
                 }                
@@ -60,14 +62,18 @@ namespace Local24API.Providers
             {
                 using (var connection = new MySqlConnection(aa1_intranet_connection))
                 {
-                    using (MySqlCommand cmd = new MySqlCommand("select employeeName from sh_employee where employeeName= '"+userName +"' AND employeePassword = '" + MD5password + "'", connection))
+                    using (MySqlCommand cmd = new MySqlCommand("select e.employeeName, e.cityID, c.cityTitle from sh_employee e " +
+                        "join sh_cities c on  e.cityID = c.cityID " +
+                        "where e.employeeName = '"+userName +"' AND e.employeePassword = '" + MD5password + "'", connection))
                     {
                         connection.Open();
                         MySqlDataReader reader = cmd.ExecuteReader();
 
                         while (reader.Read())
                         {
-                            user.UserName = reader[0].ToString();
+                            user.userName = reader[0].ToString();
+                            user.cityID = Convert.ToInt32(reader[1]);
+                            user.companyName = reader[2].ToString();
                         }
 
                         reader.Close();
@@ -81,7 +87,7 @@ namespace Local24API.Providers
                 throw e;
             }
 
-            if (user.UserName == null)
+            if (user.userName == null)
                 return null;
 
             return user;

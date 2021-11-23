@@ -21,18 +21,18 @@ namespace Local24API
             _userManager = new UserManager<IdentityUser>(new UserStore<IdentityUser>(_ctx));
         }
 
-        public async Task<IdentityResult> RegisterUser(UserModel userModel)
-        {
-            IdentityUser user = new IdentityUser
-            {
-                UserName = userModel.UserName,
-                Email = userModel.UserName
-            };
+        //public async Task<IdentityResult> RegisterUser(UserModel userModel)
+        //{
+        //    IdentityUser user = new IdentityUser
+        //    {
+        //        UserName = userModel.UserName,
+        //        Email = userModel.UserName
+        //    };
 
-            var result = await _userManager.CreateAsync(user, userModel.Password);
+        //    var result = await _userManager.CreateAsync(user, userModel.Password);
 
-            return result;
-        }
+        //    return result;
+        //}
 
         public async Task<IdentityUser> FindUser(string userName, string password)
         {
