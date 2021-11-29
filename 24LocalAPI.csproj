@@ -488,10 +488,12 @@
     <Compile Include="AuthContext.cs" />
     <Compile Include="AuthRepository.cs" />
     <Compile Include="Controllers\CustomerController.cs" />
+    <Compile Include="Controllers\InvoiceController.cs" />
     <Compile Include="Controllers\JobController.cs" />
     <Compile Include="Controllers\PartnerController.cs" />
     <Compile Include="Controllers\UserController.cs" />
     <Compile Include="Models\CustomerModel.cs" />
+    <Compile Include="Models\InvoiceModel.cs" />
     <Compile Include="Models\JobModel.cs" />
     <Compile Include="Models\CompanyModel.cs" />
     <Compile Include="Models\UserModel.cs" />
