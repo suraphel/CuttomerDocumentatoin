@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Web;
 using System.Web.Http;
@@ -18,6 +19,133 @@ namespace Local24API.Controllers
     {
         private string LOCAL24ReadConnString = System.Configuration.ConfigurationManager.ConnectionStrings["24LOCAL_Booking_Read_Connection"].ConnectionString;
         private string LOCAL24WriteConnString = System.Configuration.ConfigurationManager.ConnectionStrings["24LOCAL_Booking_Write_Connection"].ConnectionString;
+
+        [Authorize]
+        [HttpGet]
+        [SwaggerOperation("Customers")]
+        [Route("Customers")]
+        public async Task<List<CustomerModel>> Customers(UserModel userModel)
+        {
+            var principal = ClaimsPrincipal.Current;
+            var companyIdClaim = principal.Claims.FirstOrDefault(c => c.Type == "cityID");
+            List<CustomerModel> customers = new List<CustomerModel>();
+
+            try
+            {
+                using (var connection = new MySqlConnection(LOCAL24ReadConnString))
+                {
+                    using (MySqlCommand cmd = new MySqlCommand("select companyID, companyName, companyInvoiceAdress, companyInvoicePostal, companyInvoiceCity, contactName, contactMobileNumber, " +
+                        "companyEmail, creationDate, companyType, orgNr, receiveSms, jobAdress, jobPostal, jobCity, blacklist " +
+                        "from rokea_booking.sh_customer where cityID=" + companyIdClaim.Value + " order by companyName asc", connection))
+                    {
+                        connection.Open();
+                        MySqlDataReader reader = cmd.ExecuteReader();
+
+                        while (reader.Read())
+                        {
+                            CustomerModel customer = new CustomerModel();
+                            customer.customerId = reader.GetInt32(0);
+                            customer.companyName = reader.GetString(1);
+                            customer.companyInvoiceAdress = reader.GetString(2);
+                            customer.companyInvoicePostal = reader.GetString(3);
+                            customer.companyInvoiceCity = reader.GetString(4);
+                            customer.jobContactName = reader.GetString(5);
+                            customer.contactMobileNumber = reader.GetString(6);
+                            customer.companyEmail = reader.GetString(7);
+                            customer.creationDate = reader.GetString(8);
+                            customer.companyType = reader.GetInt32(9);
+                            customer.companyOrgNr = reader.GetString(10);
+                            customer.receiveSMS = reader.GetInt32(11);
+                            customer.jobAdress = reader.GetString(12);
+                            customer.jobPostal = reader.GetString(13);
+                            customer.jobCity = reader.GetString(14);
+                            customer.blacklist = reader.GetInt32(15);
+
+                            customers.Add(customer);
+                        }
+
+                        reader.Close();
+                    }
+
+                    connection.Close();
+                }
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
+
+            return customers;
+        }
+
+
+        [Authorize]
+        [HttpGet]
+        [SwaggerOperation("Create")]
+        [Route("Create")]
+        public int Create(string customerName, string jobAdress, string jobPostal, string companyContactName, string contactMobileNumber, string jobCity, 
+            string customerEmail, string employeeID, string createdDate, string companyType, string cityID, string companyInvoiceAdress, string companyInvoicePostal, string companyInvoiceCity,
+            string jobContactName, string alternativeJobContactName, string alternativeJobContactMobileNumber, string smsAndEmailChecked)
+        {
+            var principal = ClaimsPrincipal.Current;
+            object companyID;
+            string customerId;
+
+            // ----->> CHECK IF COMPANY INVOICE ADRESS SHOULD BE USED <<----- //
+            var useCompanyInvoiceAdress = 1;
+            if (companyInvoiceAdress != jobAdress)
+            {
+                jobContactName = alternativeJobContactName;
+                contactMobileNumber = alternativeJobContactMobileNumber;
+                useCompanyInvoiceAdress = 0;
+            }
+
+            try
+            {
+                using (var connection = new MySqlConnection(LOCAL24WriteConnString))
+                {
+                    connection.Open();
+                    if (useCompanyInvoiceAdress == 1) //job adress should get value of invoice adress (be the same)
+                    {
+                        using (var cmd = new MySqlCommand("INSERT INTO rokea_booking.sh_customer(companyName, companyInvoiceAdress, companyInvoicePostal, contactName, contactMobileNumber, companyInvoiceCity, " +
+                            "companyEmail, saksbehandlerID, creationDate, companyType, orgNr, comment, jobAdress, jobPostal, jobCity, cityID, useCompanyInvoiceAdress)" +
+                            "VALUES('" + customerName + "', '" + jobAdress + "', '" + jobPostal + "', '" + companyContactName + "', '" + contactMobileNumber + "', '" + jobCity + "', '" + customerEmail + "', '" + employeeID +
+                            "', '" + createdDate + "', '" + companyType + "', '', '', '" + jobAdress + "', '" + jobPostal + "', '" + jobCity + "', '" + cityID + "', '" + useCompanyInvoiceAdress + "');" +
+                            "SELECT LAST_INSERT_ID();", connection))
+                        {
+                            companyID = cmd.ExecuteScalar();
+                        }
+                    }
+                    else // invoice adress and job adress are different
+                    {
+                        using (var cmd = new MySqlCommand("INSERT INTO rokea_booking.sh_customer(companyName, companyInvoiceAdress, companyInvoicePostal, contactName, contactMobileNumber, companyInvoiceCity, " +
+                           "companyEmail, saksbehandlerID, creationDate, companyType, orgNr, comment, jobAdress, jobPostal, jobCity, cityID, useCompanyInvoiceAdress)" +
+                           "VALUES('" + customerName + "', '" + companyInvoiceAdress + "', '" + companyInvoicePostal + "', '" + companyContactName + "', '" + contactMobileNumber + "', '" + companyInvoiceCity + "', '" + customerEmail + "', '" + employeeID +
+                           "', '" + createdDate + "', '" + companyType + "', '', '', '" + jobAdress + "', '" + jobPostal + "', '" + jobCity + "', '" + cityID + "', '" + useCompanyInvoiceAdress + "');" +
+                           "SELECT LAST_INSERT_ID();", connection))
+                        {
+                            companyID = cmd.ExecuteScalar();
+                        }
+                        customerId = "tmp_" + companyID;
+
+                        // SET FIELD kundeNo ON CREATED CUSTOMER (updated later by Mamut) //
+                        using (var cmd = new MySqlCommand("update sh_customer set kundeNo = '" + customerId + "' where companyID = '" + companyID + "'", connection))
+                        {
+                            int rows = cmd.ExecuteNonQuery();
+                        }
+                    }
+
+                    connection.Close();
+
+                    return Convert.ToInt32(companyID);
+                }
+
+            }
+            catch (Exception ex)
+            {
+                return 0;
+            }
+        }
 
 
         [HttpGet]
@@ -214,6 +342,28 @@ namespace Local24API.Controllers
             {
                 throw e;
             }
+        }
+
+        public void Update(string companyID, string customerName, string jobAdress, string jobPostal, string companyContactName, string contactMobileNumber, string jobCity,
+           string customerEmail, string employeeID, string createdDate, string companyType, string cityID, string companyInvoiceAdress, string companyInvoicePostal, string companyInvoiceCity,
+           string jobContactName, string alternativeJobContactName, string alternativeJobContactMobileNumber, string smsAndEmailChecked)
+        {
+            var principal = ClaimsPrincipal.Current;
+            var cityIdClaim = principal.Claims.FirstOrDefault(c => c.Type == "cityID");
+
+            using (var connection = new MySqlConnection(LOCAL24WriteConnString))
+            {
+                connection.Open();
+                using (var cmd = new MySqlCommand("UPDATE sh_customer SET companyInvoiceAdress = '" + companyInvoiceAdress + "', companyInvoicePostal = '" + companyInvoicePostal + "'," +
+                    " contactName = '" + companyContactName + "', contactMobileNumber = '" + contactMobileNumber + "', companyInvoiceCity = '" + companyInvoiceCity + "'," +
+                    " companyEmail ='" + customerEmail + "', companyType = " + companyType + ", receiveSms = " + smsAndEmailChecked +
+                    " WHERE companyID = " + companyID, connection))
+                {
+                    cmd.ExecuteScalar();
+                }
+                connection.Close();
+            }
+
         }
 
     }

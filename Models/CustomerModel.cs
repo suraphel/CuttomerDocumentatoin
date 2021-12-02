@@ -25,6 +25,7 @@ namespace Local24API.Models
         public string companyInvoiceCity { get; set; }
         public string companyOrgNr { get; set; }
         public string companyInvoiceContactName { get; set; }
+        public string creationDate { get; set; }
         public int blacklist { get; set; }
 
     }

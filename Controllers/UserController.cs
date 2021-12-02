@@ -43,7 +43,7 @@ namespace Local24API.Controllers
         public async Task<List<UserProfileModel>> Users(UserModel userModel)
         {
             var principal = ClaimsPrincipal.Current;
-            var idClaim = principal.Claims.FirstOrDefault(c => c.Type == "companyID");
+            var companyIdClaim = principal.Claims.FirstOrDefault(c => c.Type == "cityID");
             List<UserProfileModel> userProfiles = new List<UserProfileModel>();
 
             try
@@ -55,7 +55,7 @@ namespace Local24API.Controllers
                         "from rokea_intranet.jf_fixel_employees i " +
                         "join rokea_booking.sh_employee b on i.bookingID = b.employeeID " +
                         "join rokea_intranet.jf_users u on b.employeeName = u.username " +
-                        "where i.cityID = "+idClaim.Value +" order by b.employeeName asc", connection))
+                        "where i.cityID = "+ companyIdClaim.Value +" order by b.employeeName asc", connection))
                     {
                         connection.Open();
                         MySqlDataReader reader = cmd.ExecuteReader();
@@ -104,7 +104,7 @@ namespace Local24API.Controllers
         public async Task<HttpResponseMessage> Create(UserModel userModel)
         {
             var principal = ClaimsPrincipal.Current;
-            var idClaim = principal.Claims.FirstOrDefault(c => c.Type == "companyID");
+            var cityIDClaim = principal.Claims.FirstOrDefault(c => c.Type == "cityID");
             
             HttpResponseMessage response;
 
@@ -124,7 +124,7 @@ namespace Local24API.Controllers
             {
                 using (MySqlConnection conn = new MySqlConnection(LOCAL24WriteConnString))
                 {
-                    //1.create user in table rokea_intranet.jf_users. Id of created user is used in next query
+                    //1. create user in table rokea_intranet.jf_users. Id of created user is used in next query
                     using (MySqlCommand cmd = new MySqlCommand("insert into rokea_intranet.jf_users(name, username, email, password, usertype, gid, registerdate, params) " +
                         "values('" + userModel.firstName + " " + userModel.lastName + "', '" + userModel.userName + "', '" + userModel.email + "', '" + MD5password + "', 'Registered', 18, '" + today + "', '');" +
                         "SELECT LAST_INSERT_ID();", conn))
@@ -137,7 +137,7 @@ namespace Local24API.Controllers
                     using (MySqlCommand cmd = new MySqlCommand("insert into rokea_booking.sh_employee (employeename, employeeusername, employeepassword, employeedescription, employeeimei, " +
                         "mobileno, pincodes, pukcodes, statoilcardnumber, branchno, vendorlist, loggingactivitycar, earnedcommission, creditlimitreached, certificatesandrates, supportnameandphone, " +
                         "telheadquarters, activityregistration, startdate, enddate, employeehaslonn, cityid, hvisvihartid) " +
-                        "values ('"+userModel.userName +"', '" +userModel.firstName +" " +userModel.lastName +"', '"+ MD5password +"', '', '', '"+userModel.phone +"', '', '', '', '', '', '', '', '', '', '', '', '', date '"+today +"', date '3001-01-01', 1, "+ idClaim.Value+", 0);" +
+                        "values ('"+userModel.userName +"', '" +userModel.firstName +" " +userModel.lastName +"', '"+ MD5password +"', '', '', '"+userModel.phone +"', '', '', '', '', '', '', '', '', '', '', '', '', date '"+today +"', date '3001-01-01', 1, "+ cityIDClaim.Value+", 0);" +
                         "SELECT LAST_INSERT_ID();", conn))
                     {
                         rokea_booking_sh_employee_lastID = cmd.ExecuteScalar();
@@ -146,7 +146,7 @@ namespace Local24API.Controllers
                     //3. create user in table rokea_intranet.jf_fixel_employees.
                     using (MySqlCommand cmd = new MySqlCommand("insert into rokea_intranet.jf_fixel_employees(userid, name, adresse, postnr, poststed, personnr, avdeling, avdelingid, mamutid," +
                         " ansvarstilleggid, specialansvarstillegg, bookingid, cityid, empstatus, groupid, mobilephone, beregningid, ismontor, firstname, surname, salaryhour, statusmamut, startdate, issalgsingenior) " +
-                        "values (" +rokea_intranet_jf_users_lastID +", '" +userModel.firstName +" " +userModel.lastName +"', '', '', '', '', '',1, 0, 0, 0, " + rokea_booking_sh_employee_lastID + ", " + idClaim.Value + ", 0, 0, '"+userModel.phone +"', 0, 1, '"+userModel.firstName +"', '" +userModel.lastName +"', 0.0, 0, date '"+today +"', 1);", conn))
+                        "values (" +rokea_intranet_jf_users_lastID +", '" +userModel.firstName +" " +userModel.lastName +"', '', '', '', '', '',1, 0, 0, 0, " + rokea_booking_sh_employee_lastID + ", " + cityIDClaim.Value + ", 0, 0, '"+userModel.phone +"', 0, 1, '"+userModel.firstName +"', '" +userModel.lastName +"', 0.0, 0, date '"+today +"', 1);", conn))
                     {
                         cmd.ExecuteScalar();
                     }
@@ -292,7 +292,7 @@ namespace Local24API.Controllers
         public UserProfileModel Profile()
         {
             var principal = ClaimsPrincipal.Current;
-            var idClaim = principal.Claims.FirstOrDefault(c => c.Type == "sub");
+            var idClaim = principal.Claims.FirstOrDefault(c => c.Type == "userName");
             UserProfileModel accountProfile = new UserProfileModel();
 
             try

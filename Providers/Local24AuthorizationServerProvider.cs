@@ -28,15 +28,16 @@ namespace Local24API.Providers
             try
             {
                 UserService userService = new UserService();
-                var user = await userService.Authenticate(context.UserName, context.Password);
+                UserModel user = await userService.Authenticate(context.UserName, context.Password);
 
                 if(user != null)
                 {
                     var identity = new ClaimsIdentity(context.Options.AuthenticationType);
 
-                    identity.AddClaim(new Claim("sub", context.UserName));
-                    identity.AddClaim(new Claim("role", "user"));
-                    identity.AddClaim(new Claim("companyID", user.cityID.ToString()));
+                    identity.AddClaim(new Claim("userID", user.userID));
+                    identity.AddClaim(new Claim("userName", user.userName));
+                    identity.AddClaim(new Claim("isAdmin", user.isAdmin));
+                    identity.AddClaim(new Claim("cityID", user.cityID.ToString()));
                     identity.AddClaim(new Claim("companyName", user.companyName.ToString()));
 
                     context.Validated(identity);
@@ -51,7 +52,8 @@ namespace Local24API.Providers
 
     public class UserService : IDisposable
     {
-        private string aa1_intranet_connection = "SERVER=db.rokea.no; PORT=3306; DATABASE=rokea_booking; UID=mattis;password=X$m#Jcqr229P5K@k;";
+        private string LOCAL24ConnString = System.Configuration.ConfigurationManager.ConnectionStrings["24LOCAL_Booking_Read_Connection"].ConnectionString;
+        
 
         public async Task<UserModel> Authenticate(string userName, string password)
         {
@@ -60,11 +62,52 @@ namespace Local24API.Providers
 
             try
             {
-                using (var connection = new MySqlConnection(aa1_intranet_connection))
+                using (var connection = new MySqlConnection(LOCAL24ConnString))
+                {
+                    using (MySqlCommand cmd = new MySqlCommand("select e.employeeID, e.employeeName, e.employeeIsAdmin, e.cityID, c.cityTitle from sh_employee e " +
+                        "join sh_cities c on  e.cityID = c.cityID " +
+                        "where e.employeeName = '"+userName +"' AND e.employeePassword = '" + MD5password + "'", connection))
+                    {
+                        connection.Open();
+                        MySqlDataReader reader = cmd.ExecuteReader();
+
+                        while (reader.Read())
+                        {
+                            user.userID = reader[0].ToString();
+                            user.userName = reader[1].ToString();
+                            user.isAdmin = reader[2].ToString();
+                            user.cityID = Convert.ToInt32(reader[3]);
+                            user.companyName = reader[4].ToString();
+                        }
+
+                        reader.Close();
+                    }
+
+                    connection.Close();
+                }
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
+
+            if (user.userName == null)
+                return null;
+
+            return user;
+        }
+
+        public UserModel FindByName(string userName)
+        {
+            UserModel user = new UserModel();
+
+            try
+            {
+                using (var connection = new MySqlConnection(LOCAL24ConnString))
                 {
                     using (MySqlCommand cmd = new MySqlCommand("select e.employeeName, e.cityID, c.cityTitle from sh_employee e " +
                         "join sh_cities c on  e.cityID = c.cityID " +
-                        "where e.employeeName = '"+userName +"' AND e.employeePassword = '" + MD5password + "'", connection))
+                        "where e.employeeName = '" + userName + "'", connection))
                     {
                         connection.Open();
                         MySqlDataReader reader = cmd.ExecuteReader();

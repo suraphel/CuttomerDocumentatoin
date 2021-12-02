@@ -16,6 +16,8 @@ namespace Local24API.Models
         public string phone { get; set; }
         public int cityID { get; set; }
         public string companyName { get; set; }
+        public string userID { get; internal set; }
+        public string isAdmin { get; internal set; }
     }
 
 
