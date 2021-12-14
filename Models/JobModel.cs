@@ -9,6 +9,7 @@ namespace Local24API.Models
     {
         public int jobId { get; set; }
         public string resourceId { get; set; }
+        public string employeeUserName { get; set; }
         public int jobBookerID { get; set; }
         public string name { get; set; }
         public int jobStatus { get; set; }

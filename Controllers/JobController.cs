@@ -47,7 +47,7 @@ namespace Local24API.Controllers
                 using (var connection = new MySqlConnection(LOCAL24ReadConnString))
                 {
                     using (MySqlCommand cmd = new MySqlCommand("select employeeId, employeeName, employeeUsername, cityID, employeeIsActive from sh_employee " +
-                        "where cityID = " + cityIdClaim.Value +" and groupID = 0 order by employeeName asc", connection))
+                        "where cityID = " + cityIdClaim.Value + " and (groupID = 0 or groupID=2) order by employeeName asc", connection))
                     {
                         connection.Open();
                         MySqlDataReader reader = cmd.ExecuteReader();
@@ -211,6 +211,55 @@ namespace Local24API.Controllers
             }
         }
 
+        [HttpGet]
+        [Authorize]
+        [Route("JobsForCustomer")]
+        [SwaggerOperation("JobsForCustomer")]
+        [SwaggerResponse(HttpStatusCode.OK)]
+        [SwaggerResponse(HttpStatusCode.Conflict)]
+        public async Task<List<JobModel>> JobsForCustomer(int customerID)
+        {
+            MySqlDataReader sqlDataReader;
+            List<JobModel> jobList = new List<JobModel>();
+
+            string queryString = "select j.jobID, Date(j.jobStart), j.jobTitle, e.employeeUsername, j.jobAdress, j.jobPostal, j.jobCity, j.companyID, j.jobDescription " +
+                "from rokea_booking.sh_job j join sh_employee e on j.employeeID = e.employeeID where j.companyID = " +customerID +" order by Date(j.jobStart) desc";
+
+            try
+            {
+                using (var connection = new MySqlConnection(LOCAL24ReadConnString))
+                {
+                    connection.Open();
+
+                    using (var cmd = new MySqlCommand(queryString, connection))
+                    {
+                        sqlDataReader = cmd.ExecuteReader();
+                        while (sqlDataReader.Read())
+                        {
+                            JobModel job = new JobModel();
+
+                            job.jobId = sqlDataReader.GetInt32(0);
+                            job.startDate = sqlDataReader.GetString(1);
+                            job.name = sqlDataReader.GetString(2);
+                            job.employeeUserName = sqlDataReader.GetString(3);
+                            job.JobAdress = sqlDataReader.GetString(4);
+                            job.jobPostal = sqlDataReader.GetString(5);
+                            job.jobCity = sqlDataReader.GetString(6);
+                            job.companyID = sqlDataReader.IsDBNull(7) ? 0 : sqlDataReader.GetInt32(7);
+                            job.jobDescription = sqlDataReader.IsDBNull(8) ? null : sqlDataReader.GetString(8);
+
+                            jobList.Add(job);
+                        }
+                    }
+                }
+
+                return jobList;
+            }
+            catch (Exception e)
+            {
+                throw e;
+            }
+        }
 
         [HttpPost]
         [Authorize]
@@ -222,26 +271,31 @@ namespace Local24API.Controllers
           string eventType, string jobTitle, string jobType, string jobContactName, string smsAndEmailChecked, string startDateTime, string stopDateTime, 
           string employeeID, string jobDescription, string jobAdress, string jobPostal, string jobCity, bool isNewCustomer, string customerEmail, 
           string companyInvoiceAdress, string companyInvoiceCity, string companyInvoicePostal, string alternativeJobContactName, string alternativeJobContactMobileNumber, 
-          string companyType, string companyOrgNr, string companyContactName)
+          string companyType, string companyOrgNr, string companyContactName, string fromJobID)
         {
             var principal = ClaimsPrincipal.Current;
             var userNameClaim = principal.Claims.FirstOrDefault(c => c.Type == "userName");
             var cityIdClaim = principal.Claims.FirstOrDefault(c => c.Type == "cityID");
             var userIDClaim = principal.Claims.FirstOrDefault(c => c.Type == "userID");
 
-            //var userNameClaim = "peterpan";
-            //var cityIdClaim = "10";
-            //var userIDClaim = "259";
-
             var errroresponse = this.Request.CreateResponse(HttpStatusCode.InternalServerError);
             string createdDate = String.Format("{0:yyyy-MM-dd:HH:mm:ss}", DateTime.Now.AddHours(2));
             string jobBookerID = userIDClaim.Value;
-            string jobTypeId = "0";
+            int jobTypeId = 30; // 30 is Reklamasjon in rokea_booking.sh_job_types
             int newCustomer = 0;
             int reclamation = 0;
 
             if (eventType == "Reklamasjon")
+            {
                 reclamation = 1;
+                jobTypeId = 32; // 32 is Reklamasjon in rokea_booking.sh_job_types
+            }
+
+            if (eventType == "Befaring")
+            {
+                jobTypeId = 26; // 26 is Befaring in rokea_booking.sh_job_types
+            }
+
 
             if (isNewCustomer) // ----->> CREATE CUSTOMER IF NEW <<----- //
             {
@@ -259,12 +313,6 @@ namespace Local24API.Controllers
                     alternativeJobContactMobileNumber, smsAndEmailChecked);
             }
 
-
-            // ----->> SET CORRECT JOBTYPEID <<----- //
-            if (jobType == null)
-            {
-                jobType = "0";
-            }
 
             // ----->> IS ALTERNATIVE INVOICE ADDRESS BEEING USED? <<----- //
             object jobID;
@@ -289,12 +337,12 @@ namespace Local24API.Controllers
                     // Creates job on customer (jobstatus=1 -> "Ikke påbegynt" (sh_statuses)  )
                     using (var cmd = new MySqlCommand("INSERT INTO sh_job(employeeID, jobBookerID, jobTitle, jobDescription, companyID, jobStatus, jobAdress, jobPostal, " +
                         "jobContactName, jobContactMobileNumber, jobStart, jobStop, fromPartnerID, jobCity, creationTime, useCompanyInvoiceAdress, kundeNo, saksbehandlerID, " +
-                        "newKunde, campaignID, sourceID, reclamation, jobTypeId, gender, ageId, infratekrapportnr, buildyear, oppussingdate, oppussingjob, statussikring, " +
+                        "newKunde, campaignID, sourceID, fromJobID, reclamation, jobTypeId, gender, ageId, infratekrapportnr, buildyear, oppussingdate, oppussingjob, statussikring, " +
                         "paymentType, molerID, cityID) " +
                         "VALUES('" + employeeID + "', '" + jobBookerID + "', '" + jobTitle + "', '" + jobDescription + "', '" + customerId + "', '1', '" + jobAdress + "', '" +
                         jobPostal + "', '" + jobContactName + "', '" + contactMobileNumber + "','" + startDateTime + "', " + "'" + stopDateTime + "', '0', '" +
                         jobCity + "', '" + createdDate + "'," + useCompanyInvoiceAdress + ", '" + customerId + "', '" + employeeID + "', '" + 
-                        newCustomer + "','0','0','" +reclamation +"','" + jobTypeId +"','0','0','0','0','0','0','0','0','0'," +cityIdClaim.Value +"); SELECT LAST_INSERT_ID(); ", connection))
+                        newCustomer + "','0','0','" +fromJobID +"','" +reclamation +"','" + jobTypeId +"','0','0','0','0','0','0','0','0','0'," +cityIdClaim.Value +"); SELECT LAST_INSERT_ID(); ", connection))
                     {
                         jobID = cmd.ExecuteScalar();
 
@@ -355,7 +403,7 @@ namespace Local24API.Controllers
                 command.Parameters.AddWithValue("@jobStop", stopDateTime);
                 command.Parameters.AddWithValue("@creationTime", createdDate);
                 command.Parameters.AddWithValue("@kundeNo", "");
-                command.Parameters.AddWithValue("@jobTypeId", 26); //26 is Befaring in table sh_job_types
+                command.Parameters.AddWithValue("@jobTypeId", 31); //31 is Opptatt in table sh_job_types
                 command.Parameters.AddWithValue("@stda", stda);
                 command.Parameters.AddWithValue("@cityID", cityIdClaim.Value);
 

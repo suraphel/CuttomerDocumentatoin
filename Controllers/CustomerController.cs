@@ -156,6 +156,9 @@ namespace Local24API.Controllers
         [SwaggerResponse(HttpStatusCode.Conflict)]
         public async Task<List<CustomerModel>> SearchCustomersAsync(string searchValue)
         {
+            var principal = ClaimsPrincipal.Current;
+            var companyIdClaim = principal.Claims.FirstOrDefault(c => c.Type == "cityID");
+
             MySqlDataReader sqlDataReader;
             List<CustomerModel> customerList = new List<CustomerModel>();
             string connection;
@@ -166,10 +169,10 @@ namespace Local24API.Controllers
             //create querystrings based on param searchValue 
             if (searchValue.Length == 8 && int.TryParse(searchValue, out int n)) //querystring is 8 digit number -> search on phone numbers
                 queryString = "select companyID, companyName, contactMobileNumber, contactPhoneNumber, jobAdress, jobPostal, jobCity, companyEmail, receiveSMS, cityID, companyType, companyInvoiceAdress, companyInvoicePostal, companyInvoiceCity, contactName, blacklist, orgNr from sh_customer " +
-                                "where contactMobileNumber = '" + searchValue + "' || contactPhoneNumber = '" + searchValue + "' order by creationDate desc LIMIT 10";
+                                "where contactMobileNumber = '" + searchValue + "' || contactPhoneNumber = '" + searchValue + "' and cityID =" +companyIdClaim.Value +" order by creationDate desc LIMIT 10";
             else //search on company names
                 queryString = "select companyID, companyName, contactMobileNumber, contactPhoneNumber, jobAdress, jobPostal, jobCity, companyEmail, receiveSMS, cityID, companyType, companyInvoiceAdress, companyInvoicePostal, companyInvoiceCity, contactName, blacklist, orgNr from sh_customer " +
-                            "where companyName LIKE '%" + searchValue + "%' order by creationDate desc LIMIT 10";
+                            "where companyName LIKE '%" + searchValue + "%' and cityID=" + companyIdClaim.Value + " order by creationDate desc LIMIT 10";
 
             try
             {
