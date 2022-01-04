@@ -584,7 +584,7 @@ namespace Local24API.Controllers
 
                         int MaxContentLength = 1024 * 1024 * 1; //Size = 1 MB
 
-                        IList<string> AllowedFileExtensions = new List<string> { ".jpg", ".gif", ".png" };
+                        IList<string> AllowedFileExtensions = new List<string> { ".jpg", ".gif", ".png", ".pdf" };
                         var ext = postedFile.FileName.Substring(postedFile.FileName.LastIndexOf('.'));
                         var extension = ext.ToLower();
                         if (!AllowedFileExtensions.Contains(extension))
@@ -618,15 +618,13 @@ namespace Local24API.Controllers
             }
             catch (Exception ex)
             {
-                var res = string.Format("some Message");
+                var res = string.Format("An error occured");
                 dict.Add("error", res);
                 return Request.CreateResponse(HttpStatusCode.NotFound, dict);
             }
 
             return Request.CreateResponse(HttpStatusCode.OK);
         }
-
-
 
         [HttpGet]
         [Authorize]
