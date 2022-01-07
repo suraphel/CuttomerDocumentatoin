@@ -77,4 +77,12 @@ namespace Local24API.Models
         public string companyName { get; set; }
         public string contactMobileNumber { get; set; }
     }
+
+    public class JobDocumentationModel
+    {
+        public string documentName { get; set; }
+        public string documentURI { get; set; }
+    }
+
+
 }

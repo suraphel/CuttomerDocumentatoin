@@ -20,6 +20,8 @@ using Azure.Storage.Blobs;
 using Microsoft.WindowsAzure.Storage;
 using System.IO;
 using System.Web;
+using Azure.Storage.Sas;
+using Microsoft.WindowsAzure.Storage.Blob;
 
 namespace Local24API.Controllers
 {
@@ -560,14 +562,14 @@ namespace Local24API.Controllers
 
         [HttpPost]
         //[Authorize]
-        [Route("CreateBlobContent")]
-        [SwaggerOperation("CreateBlobContent")]
+        [Route("CreateJobDocumentation")]
+        [SwaggerOperation("CreateJobDocumentation")]
         [SwaggerResponse(HttpStatusCode.OK)]
         [SwaggerResponse(HttpStatusCode.Conflict)]
-        public async Task<HttpResponseMessage> CreateBlobContent()
+        public async Task<HttpResponseMessage> CreateJobDocumentation(string jobID)
         {
             Dictionary<string, object> dict = new Dictionary<string, object>();
-            string storageconnstring = "DefaultEndpointsProtocol=https;AccountName=local24sa;AccountKey=XUY+AVn7oo2mxy2E4jrclFZhWTeZ7oGuUVoGmZsEgxF8cj5LLspyMzqjxGA+Ts3KF7C+JxRHvmW2f3GRLtARqQ==;EndpointSuffix=core.windows.net";
+            string storageConnString = "DefaultEndpointsProtocol=https;AccountName=local24sa;AccountKey=XUY+AVn7oo2mxy2E4jrclFZhWTeZ7oGuUVoGmZsEgxF8cj5LLspyMzqjxGA+Ts3KF7C+JxRHvmW2f3GRLtARqQ==;EndpointSuffix=core.windows.net";
             string containerName = "24local";
 
             try
@@ -582,7 +584,7 @@ namespace Local24API.Controllers
                     if (postedFile != null && postedFile.ContentLength > 0)
                     {
 
-                        int MaxContentLength = 1024 * 1024 * 1; //Size = 1 MB
+                        int MaxContentLength = 1024 * 1024 * 5; //Size = 5 MB
 
                         IList<string> AllowedFileExtensions = new List<string> { ".jpg", ".gif", ".png", ".pdf" };
                         var ext = postedFile.FileName.Substring(postedFile.FileName.LastIndexOf('.'));
@@ -605,8 +607,8 @@ namespace Local24API.Controllers
                             BinaryReader br = new BinaryReader(fs);
                             byte[] bytes = br.ReadBytes((Int32)fs.Length);
 
-                            var blobContainerClient = new BlobContainerClient(storageconnstring, containerName);
-                            BlobClient blob = blobContainerClient.GetBlobClient(postedFile.FileName);
+                            var blobContainerClient = new BlobContainerClient(storageConnString, containerName);
+                            BlobClient blob = blobContainerClient.GetBlobClient(jobID +"-" +postedFile.FileName);
 
                             using (var ms = new MemoryStream(bytes, false))
                             {
@@ -624,6 +626,61 @@ namespace Local24API.Controllers
             }
 
             return Request.CreateResponse(HttpStatusCode.OK);
+        }
+
+        [HttpGet]
+        //[Authorize]
+        [Route("GetJobDocumentation")]
+        [SwaggerOperation("GetJobDocumentation")]
+        [SwaggerResponse(HttpStatusCode.OK)]
+        [SwaggerResponse(HttpStatusCode.Conflict)]
+        public async Task<List<JobDocumentationModel>> GetJobDocumentation(string jobID)
+        {
+            string storageConnectionString = "DefaultEndpointsProtocol=https;AccountName=local24sa;AccountKey=XUY+AVn7oo2mxy2E4jrclFZhWTeZ7oGuUVoGmZsEgxF8cj5LLspyMzqjxGA+Ts3KF7C+JxRHvmW2f3GRLtARqQ==;EndpointSuffix=core.windows.net";
+            var containerName = "24local";
+
+            List<JobDocumentationModel> jobDocumentationList = new List<JobDocumentationModel>();
+                     
+            CloudStorageAccount storageAccount = CloudStorageAccount.Parse(storageConnectionString);
+            CloudBlobClient blobClient = storageAccount.CreateCloudBlobClient();
+            CloudBlobContainer container = blobClient.GetContainerReference(containerName);
+
+            SharedAccessBlobPermissions permission = SharedAccessBlobPermissions.Read;
+
+            TimeSpan clockSkew = TimeSpan.FromMinutes(15d);
+            TimeSpan accessDuration = TimeSpan.FromMinutes(15d);
+
+            var blobSAS = new SharedAccessBlobPolicy
+            {
+                SharedAccessStartTime = DateTime.UtcNow.Subtract(clockSkew),
+                SharedAccessExpiryTime = DateTime.UtcNow.Add(accessDuration) + clockSkew,
+                Permissions = permission
+            };
+
+            // produce sas (shared access signature) tokens for each job document (blob) and generate URI's
+            BlobResultSegment blobResultSegment = await container.ListBlobsSegmentedAsync(null);
+
+            foreach (IListBlobItem item in blobResultSegment.Results.Where((b => b.Uri.ToString().Contains(jobID))))
+            {
+                
+                string uri = item.Uri.ToString();
+                string blobName = uri.Substring(uri.LastIndexOf("/") + 1);
+
+                CloudBlockBlob blob = container.GetBlockBlobReference(blobName);
+
+                //grant access on file
+                string sasBlobToken = blob.GetSharedAccessSignature(blobSAS);
+
+                uri += sasBlobToken.ToString(); //must add each value to list
+
+                JobDocumentationModel documents = new JobDocumentationModel();
+                documents.documentName = blobName;
+                documents.documentURI = uri;
+
+                jobDocumentationList.Add(documents);
+            }
+
+            return jobDocumentationList;
         }
 
         [HttpGet]
