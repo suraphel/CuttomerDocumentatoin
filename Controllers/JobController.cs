@@ -421,7 +421,7 @@ namespace Local24API.Controllers
             var errroresponse = this.Request.CreateResponse(HttpStatusCode.InternalServerError);
             string createdDate = String.Format("{0:yyyy-MM-dd:HH:mm:ss}", DateTime.Now.AddHours(2));
             string jobBookerID = userIDClaim.Value;
-            int jobTypeId = 30; // 30 is Reklamasjon in rokea_booking.sh_job_types
+            int jobTypeId = 30; // 30 is Jobb in rokea_booking.sh_job_types
             int newCustomer = 0;
             int reclamation = 0;
 
@@ -496,8 +496,7 @@ namespace Local24API.Controllers
                 return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, "Could not create JOB.");
             }
 
-            var response = this.Request.CreateResponse(HttpStatusCode.OK);
-            return response;
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(jobID.ToString()) };
         }
 
 
@@ -561,7 +560,7 @@ namespace Local24API.Controllers
         }
 
         [HttpPost]
-        //[Authorize]
+        [Authorize]
         [Route("CreateJobDocumentation")]
         [SwaggerOperation("CreateJobDocumentation")]
         [SwaggerResponse(HttpStatusCode.OK)]
@@ -629,7 +628,7 @@ namespace Local24API.Controllers
         }
 
         [HttpGet]
-        //[Authorize]
+        [Authorize]
         [Route("GetJobDocumentation")]
         [SwaggerOperation("GetJobDocumentation")]
         [SwaggerResponse(HttpStatusCode.OK)]
@@ -657,10 +656,10 @@ namespace Local24API.Controllers
                 Permissions = permission
             };
 
-            // produce sas (shared access signature) tokens for each job document (blob) and generate URI's
+            // produce sas (shared access signature) tokens for each job document (azure blob) and generate URI's
             BlobResultSegment blobResultSegment = await container.ListBlobsSegmentedAsync(null);
 
-            foreach (IListBlobItem item in blobResultSegment.Results.Where((b => b.Uri.ToString().Contains(jobID))))
+            foreach (IListBlobItem item in blobResultSegment.Results.Where((b => b.Uri.ToString().Contains(jobID +"-"))))
             {
                 
                 string uri = item.Uri.ToString();
