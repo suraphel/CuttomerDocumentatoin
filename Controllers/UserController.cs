@@ -1,17 +1,12 @@
 ﻿using Microsoft.AspNet.Identity;
-using Microsoft.AspNet.Identity.EntityFramework;
-using Microsoft.Owin.Security.OAuth;
 using MySql.Data.MySqlClient;
 using Local24API.Models;
 using Swashbuckle.Swagger.Annotations;
 using System;
 using System.Collections.Generic;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Mail;
-using System.Net.Mime;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using System.Web.Http;
@@ -165,7 +160,7 @@ namespace Local24API.Controllers
             return response;
         }
 
-        //[Authorize]
+        [Authorize]
         [HttpPost]
         [SwaggerOperation("Update")]
         [Route("Update")]
@@ -193,7 +188,7 @@ namespace Local24API.Controllers
             
         }
 
-        //[Authorize]
+        [Authorize]
         [HttpPost]
         [Route("Deactivate")]
         [SwaggerOperation("Deactivate")]

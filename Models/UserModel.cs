@@ -39,4 +39,5 @@ namespace Local24API.Models
         public bool isActive { get; set; }
         public string companyName { get; set; }
     }
+
 }

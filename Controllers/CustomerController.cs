@@ -1,6 +1,5 @@
-﻿using Local24API.Models;
-using MySql.Data.MySqlClient;
-using Newtonsoft.Json.Linq;
+﻿using MySql.Data.MySqlClient;
+using Local24API.Models;
 using Swashbuckle.Swagger.Annotations;
 using System;
 using System.Collections.Generic;
@@ -9,8 +8,8 @@ using System.Net;
 using System.Net.Http;
 using System.Security.Claims;
 using System.Threading.Tasks;
-using System.Web;
 using System.Web.Http;
+using Newtonsoft.Json.Linq;
 
 namespace Local24API.Controllers
 {
@@ -24,7 +23,7 @@ namespace Local24API.Controllers
         [HttpGet]
         [SwaggerOperation("Customers")]
         [Route("Customers")]
-        public async Task<List<CustomerModel>> Customers(UserModel userModel)
+        public async Task<List<CustomerModel>> Customers()
         {
             var principal = ClaimsPrincipal.Current;
             var companyIdClaim = principal.Claims.FirstOrDefault(c => c.Type == "cityID");
@@ -55,11 +54,11 @@ namespace Local24API.Controllers
                             customer.creationDate = reader.GetString(8);
                             customer.companyType = reader.GetInt32(9);
                             customer.companyOrgNr = reader.GetString(10);
-                            customer.receiveSMS = reader.GetInt32(11);
+                            customer.receiveSMS = reader.GetInt16(11); ;
                             customer.jobAdress = reader.GetString(12);
                             customer.jobPostal = reader.GetString(13);
                             customer.jobCity = reader.GetString(14);
-                            customer.blacklist = reader.GetInt32(15);
+                            customer.blacklist = reader.GetInt16(15);
 
                             customers.Add(customer);
                         }
@@ -169,7 +168,7 @@ namespace Local24API.Controllers
             //create querystrings based on param searchValue 
             if (searchValue.Length == 8 && int.TryParse(searchValue, out int n)) //querystring is 8 digit number -> search on phone numbers
                 queryString = "select companyID, companyName, contactMobileNumber, contactPhoneNumber, jobAdress, jobPostal, jobCity, companyEmail, receiveSMS, cityID, companyType, companyInvoiceAdress, companyInvoicePostal, companyInvoiceCity, contactName, blacklist, orgNr from sh_customer " +
-                                "where contactMobileNumber = '" + searchValue + "' || contactPhoneNumber = '" + searchValue + "' and cityID =" +companyIdClaim.Value +" order by creationDate desc LIMIT 10";
+                                "where (contactMobileNumber = '" + searchValue + "' || contactPhoneNumber = '" + searchValue + "') and cityID =" +companyIdClaim.Value +" order by creationDate desc LIMIT 10";
             else //search on company names
                 queryString = "select companyID, companyName, contactMobileNumber, contactPhoneNumber, jobAdress, jobPostal, jobCity, companyEmail, receiveSMS, cityID, companyType, companyInvoiceAdress, companyInvoicePostal, companyInvoiceCity, contactName, blacklist, orgNr from sh_customer " +
                             "where companyName LIKE '%" + searchValue + "%' and cityID=" + companyIdClaim.Value + " order by creationDate desc LIMIT 10";
@@ -346,6 +345,37 @@ namespace Local24API.Controllers
                 throw e;
             }
         }
+
+
+        [Authorize]
+        [HttpPost]
+        [SwaggerOperation("UpdateCustomer")]
+        [Route("UpdateCustomer")]
+        public async Task<HttpResponseMessage> UpdateCustomer(CustomerModel customerModel)
+        {
+            try
+            {
+                using (MySqlConnection conn = new MySqlConnection(LOCAL24WriteConnString))
+                {
+                    using (MySqlCommand cmd = new MySqlCommand("UPDATE sh_customer SET companyInvoiceAdress = '" + customerModel.companyInvoiceAdress + "', companyInvoicePostal = '" + customerModel.companyInvoicePostal + "'," +
+                    " companyName = '" + customerModel.companyName + "', contactMobileNumber = '" + customerModel.contactMobileNumber + "', companyInvoiceCity = '" + customerModel.companyInvoiceCity + "'," +
+                    " companyEmail ='" + customerModel.companyEmail + "', blackList = " + customerModel.blacklist + ", receiveSms = " + customerModel.receiveSMS +
+                    " WHERE companyID = " + customerModel.customerId, conn))
+                    {
+                        conn.Open();
+                        cmd.ExecuteNonQuery();
+                        var response = this.Request.CreateResponse(HttpStatusCode.OK);
+                        return response;
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                var response = this.Request.CreateResponse(HttpStatusCode.InternalServerError);
+                return response;
+            }
+        }
+
 
         public void Update(string companyID, string customerName, string jobAdress, string jobPostal, string companyContactName, string contactMobileNumber, string jobCity,
            string customerEmail, string employeeID, string createdDate, string companyType, string cityID, string companyInvoiceAdress, string companyInvoicePostal, string companyInvoiceCity,
