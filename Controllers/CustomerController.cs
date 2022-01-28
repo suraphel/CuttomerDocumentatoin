@@ -114,6 +114,7 @@ namespace Local24API.Controllers
                         {
                             companyID = cmd.ExecuteScalar();
                         }
+                        customerId = "tmp_" + companyID;
                     }
                     else // invoice adress and job adress are different
                     {
@@ -126,12 +127,12 @@ namespace Local24API.Controllers
                             companyID = cmd.ExecuteScalar();
                         }
                         customerId = "tmp_" + companyID;
+                    }
 
-                        // SET FIELD kundeNo ON CREATED CUSTOMER (updated later by Mamut) //
-                        using (var cmd = new MySqlCommand("update sh_customer set kundeNo = '" + customerId + "' where companyID = '" + companyID + "'", connection))
-                        {
-                            int rows = cmd.ExecuteNonQuery();
-                        }
+                    // SET FIELD kundeNo ON CREATED CUSTOMER (updated later by Mamut) //
+                    using (var cmd = new MySqlCommand("update sh_customer set kundeNo = '" + customerId + "' where companyID = '" + companyID + "'", connection))
+                    {
+                        int rows = cmd.ExecuteNonQuery();
                     }
 
                     connection.Close();

@@ -443,6 +443,8 @@ namespace Local24API.Controllers
                 int companyID = customerController.Create(customerName, jobAdress, jobPostal, companyContactName, contactMobileNumber, jobCity, customerEmail, employeeID, createdDate, 
                     companyType, cityIdClaim.Value, companyInvoiceAdress, companyInvoicePostal, companyInvoiceCity, jobContactName, alternativeJobContactName,
                     alternativeJobContactMobileNumber, smsAndEmailChecked);
+
+                customerId = companyID.ToString();
             }
 
             if (!isNewCustomer) // ----->> EXISTING CUSTOMER -> UPDATE //
@@ -455,7 +457,7 @@ namespace Local24API.Controllers
 
 
             // ----->> IS ALTERNATIVE INVOICE ADDRESS BEEING USED? <<----- //
-            object jobID;
+            
             var useCompanyInvoiceAdress = 0;
             if (alternativeJobContactName != "undefined")
             {
@@ -465,6 +467,8 @@ namespace Local24API.Controllers
             }
 
             // ----->> CREATE JOB <<----- //
+            object jobID;
+
             try
             {
                 using (var connection = new MySqlConnection(LOCAL24WriteConnString))
@@ -473,7 +477,6 @@ namespace Local24API.Controllers
 
                     connection.Open();
 
-                   
                     // Creates job on customer (jobstatus=1 -> "Ikke påbegynt" (sh_statuses)  )
                     using (var cmd = new MySqlCommand("INSERT INTO sh_job(employeeID, jobBookerID, jobTitle, jobDescription, companyID, jobStatus, jobAdress, jobPostal, " +
                         "jobContactName, jobContactMobileNumber, jobStart, jobStop, fromPartnerID, jobCity, creationTime, useCompanyInvoiceAdress, kundeNo, saksbehandlerID, " +
@@ -485,7 +488,6 @@ namespace Local24API.Controllers
                         newCustomer + "','0','0','" +fromJobID +"','" +reclamation +"','" + jobTypeId +"','0','0','0','0','0','0','0','0','0'," +cityIdClaim.Value +"); SELECT LAST_INSERT_ID(); ", connection))
                     {
                         jobID = cmd.ExecuteScalar();
-
                     }
 
                     connection.Close();
