@@ -561,6 +561,34 @@ namespace Local24API.Controllers
             return response;
         }
 
+        [HttpDelete]
+        [Authorize]
+        [Route("Delete")]
+        [SwaggerOperation("Delete")]
+        [SwaggerResponse(HttpStatusCode.OK)]
+        [SwaggerResponse(HttpStatusCode.Conflict)]
+        public async Task<HttpResponseMessage> Delete(int jobID)
+        {
+            try
+            {
+                MySqlConnection connection = new MySqlConnection(LOCAL24WriteConnString);
+                connection.Open();
+
+                string query = "DELTE FROM rokea_booking.sh_job WHERE jobID = " + jobID;
+
+                MySqlCommand command = new MySqlCommand(query, connection);
+                command.ExecuteScalar();
+                connection.Close();
+            }
+            catch (Exception ex)
+            {
+                return Request.CreateErrorResponse(HttpStatusCode.InternalServerError, "Could not delete job");
+            }
+
+            var response = this.Request.CreateResponse(HttpStatusCode.OK);
+            return response;
+        }
+
         [HttpPost]
         [Authorize]
         [Route("CreateJobDocumentation")]
