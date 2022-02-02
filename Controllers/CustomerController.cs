@@ -116,7 +116,7 @@ namespace Local24API.Controllers
                         }
                         customerId = "tmp_" + companyID;
                     }
-                    else // invoice adress and job adress are different
+                    else //invoice adress and job adress are different
                     {
                         using (var cmd = new MySqlCommand("INSERT INTO rokea_booking.sh_customer(companyName, companyInvoiceAdress, companyInvoicePostal, contactName, contactMobileNumber, companyInvoiceCity, " +
                            "companyEmail, saksbehandlerID, creationDate, companyType, orgNr, comment, jobAdress, jobPostal, jobCity, cityID, useCompanyInvoiceAdress)" +
