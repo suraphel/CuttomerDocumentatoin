@@ -515,7 +515,11 @@
     <Compile Include="Controllers\JobController.cs" />
     <Compile Include="Controllers\PartnerController.cs" />
     <Compile Include="Controllers\UserController.cs" />
+    <Compile Include="Models\CustomerJobModel.cs" />
     <Compile Include="Models\CustomerModel.cs" />
+    <Compile Include="Models\CustomerPortalModel.cs" />
+    <Compile Include="Models\CustomerSurveyAnswersModel.cs" />
+    <Compile Include="Models\CustomerSurveyQuestionsModel.cs" />
     <Compile Include="Models\InvoiceModel.cs" />
     <Compile Include="Models\JobModel.cs" />
     <Compile Include="Models\CompanyModel.cs" />
@@ -542,7 +546,9 @@
   <ItemGroup>
     <Folder Include="App_Data\" />
     <Folder Include="Data\" />
+    <Folder Include="Views\CustomerId\" />
     <Folder Include="Views\CustomerPortal\" />
+    <Folder Include="Views\test\" />
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

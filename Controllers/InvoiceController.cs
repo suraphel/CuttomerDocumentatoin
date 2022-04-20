@@ -21,7 +21,7 @@ namespace Local24API.Controllers
         private string LOCAL24WriteConnString = System.Configuration.ConfigurationManager.ConnectionStrings["24LOCAL_Booking_Write_Connection"].ConnectionString;
 
 
-        //[Authorize]
+        [Authorize]
         [HttpGet]
         [Route("Invoices")]
         [SwaggerOperation("Invoices")]
@@ -50,7 +50,8 @@ namespace Local24API.Controllers
                         while (reader.Read())
                         {
                             InvoiceModel invoice = new InvoiceModel();
-                            
+
+                                                       
                             invoice.fgrNr = reader.GetInt32(0);
                             invoice.mamutUserID = reader.GetInt32(1);
                             invoice.dato = reader.GetDateTime(2);

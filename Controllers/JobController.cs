@@ -658,12 +658,12 @@ namespace Local24API.Controllers
         }
 
         [HttpGet]
-        [Authorize]
+       // [Authorize]
         [Route("GetJobDocumentation")]
         [SwaggerOperation("GetJobDocumentation")]
         [SwaggerResponse(HttpStatusCode.OK)]
         [SwaggerResponse(HttpStatusCode.Conflict)]
-        public async Task<List<JobDocumentationModel>> GetJobDocumentation(string jobID)
+        public async Task<List<JobDocumentationModel>> GetJobDocumentation(string jobID) 
         {
             string storageConnectionString = "DefaultEndpointsProtocol=https;AccountName=local24sa;AccountKey=XUY+AVn7oo2mxy2E4jrclFZhWTeZ7oGuUVoGmZsEgxF8cj5LLspyMzqjxGA+Ts3KF7C+JxRHvmW2f3GRLtARqQ==;EndpointSuffix=core.windows.net";
             var containerName = "24local";
@@ -688,7 +688,7 @@ namespace Local24API.Controllers
 
             // produce sas (shared access signature) tokens for each job document (azure blob) and generate URI's
             BlobResultSegment blobResultSegment = await container.ListBlobsSegmentedAsync(null);
-
+            
             foreach (IListBlobItem item in blobResultSegment.Results.Where((b => b.Uri.ToString().Contains(jobID +"-"))))
             {
                 
